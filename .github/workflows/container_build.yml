@@ -36,7 +36,7 @@ jobs:
         run: mkdir scan-results
     
       - name: CrowdStrike Container Image Scan
-        uses: crowdstrike/container-image-scan-action@v1.1.0
+        uses: crowdstrike/container-image-scan-action@v1.4.0
         with:
           falcon_client_id: "${{ secrets.FALCON_CLIENT_ID }}"
           container_repository: "${{ secrets.CONTAINER_REPO }}"

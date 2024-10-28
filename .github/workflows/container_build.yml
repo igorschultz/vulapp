@@ -38,12 +38,12 @@ jobs:
       - name: CrowdStrike Container Image Scan
         uses: crowdstrike/container-image-scan-action@v1.1.0
         env:
-          FALCON_CLIENT_ID: "${{ secrets.FALCON_CLIENT_ID }}"
-          FALCON_CLIENT_SECRET: "${{ secrets.FALCON_CLIENT_SECRET }}"
-          FALCON_CLOUD_REGION: "{{ secrets.FALCON_CLOUD_REGION }}"
-          CONTAINER_REPO: "{{ secrets.CONTAINER_REPO }}"
-          CONTAINER_TAG: "${{ steps.version.outputs.VERSION }}"
-          JSON_REPORT: "scan-results/"
+          falcon_client_id: "${{ secrets.FALCON_CLIENT_ID }}"
+          alcon_client_secret: "${{ secrets.FALCON_CLIENT_SECRET }}"
+          falcon_cloud_region: "${{ secrets.FALCON_CLOUD_REGION }}"
+          container_repository: "${{ secrets.CONTAINER_REPO }}"
+          container_tag: "${{ steps.version.outputs.VERSION }}"
+          json_report: "scan-results/"
       
       - name: Show scan results
         run: cat scan-results/*.json

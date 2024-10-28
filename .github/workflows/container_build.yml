@@ -41,7 +41,6 @@ jobs:
           falcon_client_id: "${{ secrets.FALCON_CLIENT_ID }}"
           container_repository: "${{ secrets.CONTAINER_REPO }}"
           container_tag: "${{ steps.version.outputs.VERSION }}"
-          crowdstrike_region: "${{ secrets.FALCON_CLOUD_REGION }}"
           json_report: "scan-results/"
         env:          
           falcon_client_secret: "${{ secrets.FALCON_CLIENT_SECRET }}"
@@ -49,7 +48,6 @@ jobs:
       - name: Show scan results
         run: cat scan-results/*.json
 
-        
   push-image:
     needs: fcs-scan
     runs-on: ubuntu-latest

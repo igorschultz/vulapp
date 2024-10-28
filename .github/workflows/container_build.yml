@@ -39,8 +39,8 @@ jobs:
         uses: crowdstrike/container-image-scan-action@v1.1.0
         env:
           falcon_client_id: "${{ secrets.FALCON_CLIENT_ID }}"
-          alcon_client_secret: "${{ secrets.FALCON_CLIENT_SECRET }}"
-          falcon_cloud_region: "${{ secrets.FALCON_CLOUD_REGION }}"
+          falcon_client_secret: "${{ secrets.FALCON_CLIENT_SECRET }}"
+          crowdstrike_region: "${{ secrets.FALCON_CLOUD_REGION }}"
           container_repository: "${{ secrets.CONTAINER_REPO }}"
           container_tag: "${{ steps.version.outputs.VERSION }}"
           json_report: "scan-results/"

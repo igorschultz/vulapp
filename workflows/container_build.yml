@@ -1,0 +1,84 @@
+name: Container Build
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-image:
+    name: Build image
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout project
+      uses: actions/checkout@v4.1.1
+
+    - name: Set version
+      id: version
+      run: echo "VERSION=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+    - name: "Docker build and tag image"
+      run: |
+        DOCKER_IMAGE="${{ secrets.CONTAINER_REPO }}:${{ steps.version.outputs.VERSION }}"
+        docker build -t $DOCKER_IMAGE .
+
+  fcs-scan:
+    needs: build-image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4.1.1
+    
+      - name: Create scan results directory
+        run: mkdir scan-results
+    
+      - name: CrowdStrike Container Image Scan
+        uses: crowdstrike/container-image-scan-action@v1.1.0
+        env:
+          FALCON_CLIENT_ID: "${{ secrets.FALCON_CLIENT_ID }}"
+          FALCON_CLIENT_SECRET: "${{ secrets.FALCON_CLIENT_SECRET }}"
+          FALCON_CLOUD_REGION: "{{ secrets.FALCON_CLOUD_REGION }}"
+          CONTAINER_REPO: "{{ secrets.CONTAINER_REPO }}"
+          CONTAINER_TAG: "${{ steps.version.outputs.VERSION }}"
+          JSON_REPORT: "scan-results/"
+      
+      - name: Show scan results
+        run: cat scan-results/*.json
+
+        
+  push-image:
+    needs: fcs-scan
+    runs-on: ubuntu-latest
+    steps:
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: "${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}"
+  
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        
+      - name: Install gke-gcloud-auth-plugin
+        run: gcloud components install kubectl
+  
+      - name: Check gke-gcloud-auth-plugin
+        run: kubectl version --client
+        
+      - name: Use gcloud CLI
+        run: gcloud info
+  
+      - name: Docker auth
+        run: gcloud auth configure-docker us-central-1-docker.pkg.dev --quiet
+
+      - name: Push the docker image
+        env:
+          GOOGLE_PROJECT: ${{ secrets.GOOGLE_PROJECT }}
+          VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          DOCKER_IMAGE="${{ secrets.CONTAINER_REPO }}:${{ steps.version.outputs.VERSION }}"
+          gcloud auth configure-docker us-central1-docker.pkg.dev
+          docker push ${DOCKER_IMAGE}

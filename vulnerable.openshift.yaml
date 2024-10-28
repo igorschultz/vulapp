@@ -1,0 +1,79 @@
+# oc apply -f vulnerable.openshift.yaml
+# oc get route vulnapp
+# oc delete -f vulnerable.openshift.yaml
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: vulnapp
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: vulnapp-anyuid
+subjects:
+  - kind: ServiceAccount
+    name: vulnapp
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: 'system:openshift:scc:anyuid'
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vulnapp
+  labels:
+    app.kubernetes.io/part-of: vulnapp
+spec:
+  selector:
+   matchLabels:
+      run: vulnapp
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        run: vulnapp
+    spec:
+      serviceAccountName: vulnapp
+      securityContext:
+        runAsUser: 0
+      containers:
+        - name: vulnapp
+          image: quay.io/crowdstrike/vulnapp
+          imagePullPolicy: Always
+          command:
+            - "/entrypoint.sh"
+          ports:
+            - containerPort: 8080
+              name: web
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vulnapp
+  labels:
+    app.kubernetes.io/part-of: vulnapp
+spec:
+  selector:
+    run: vulnapp
+  ports:
+    - port: 80
+      targetPort: 8080
+  type: ClusterIP
+---
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: vulnapp
+  labels:
+    app.kubernetes.io/part-of: vulnapp
+spec:
+  to:
+    kind: Service
+    name: vulnapp
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  port:
+    targetPort: 8080

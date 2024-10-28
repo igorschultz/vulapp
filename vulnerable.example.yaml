@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: vulapp
+  labels:
+    name: vulapp
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vulnerable.example.com
+  namespace: vulapp
+spec:
+  selector:
+   matchLabels:
+      run: vulnerable.example.com
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        run: vulnerable.example.com
+    spec:
+      containers:
+          - name: vulnapp
+            image: quay.io/crowdstrike/vulnapp
+            imagePullPolicy: Always
+            command:
+              - "/entrypoint.sh"
+            ports:
+             - containerPort: 8080
+               name: web
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vulnerable-example-com
+  namespace: vulapp
+spec:
+  selector:
+    run: vulnerable.example.com
+  ports:
+    - port: 80
+      targetPort: 8080
+  type: LoadBalancer

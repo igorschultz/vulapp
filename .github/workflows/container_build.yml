@@ -32,21 +32,15 @@ jobs:
       - name: Checkout project
         uses: actions/checkout@v4.1.1
     
-      - name: Create scan results directory
-        run: mkdir scan-results
-    
-      - name: CrowdStrike Container Image Scan
-        uses: crowdstrike/container-image-scan-action@v1.4.0
-        with:
-          falcon_client_id: "${{ secrets.FALCON_CLIENT_ID }}"
-          container_repository: "${{ secrets.CONTAINER_REPO }}"
-          container_tag: "${{ steps.version.outputs.VERSION }}"
-          json_report: "scan-results/"
-        env:          
-          falcon_client_secret: "${{ secrets.FALCON_CLIENT_SECRET }}"
-        
-      - name: Show scan results
-        run: cat scan-results/*.json
+      - name: Patch the docker image with Falcon Container Sensor
+        env:
+          VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          curl -sSL -o falcon-container-sensor-pull.sh "https://raw.githubusercontent.com/CrowdStrike/falcon-scripts/main/bash/containers/falcon-container-sensor-pull/falcon-container-sensor-pull.sh"
+          chmod +x falcon-container-sensor-pull.sh
+          export LATESTSENSOR=$(bash <(curl -Ls https://github.com/CrowdStrike/falcon-scripts/releases/latest/download/falcon-container-sensor-pull.sh) -t falcon-container | tail -1) && echo $LATESTSENSOR
+          export FALCON_CID=$(./falcon-container-sensor-pull.sh -t falcon-container --get-cid)
+          docker run --platform linux --user 0:0 -v ${HOME}/.docker/config.json:/root/.docker/config.json -v /var/run/docker.sock:/var/run/docker.sock --rm $LATESTSENSOR falconutil patch-image ecsfargate --source-image-uri ${DOCKER_IMAGE} --target-image-uri "${DOCKER_IMAGE}-patched" --falcon-image-uri $FALCON_IMAGE_URI --cid $FALCON_CID --image-pull-policy IfNotPresent
 
   push-image:
     needs: fcs-scan
@@ -75,9 +69,10 @@ jobs:
 
       - name: Push the docker image
         env:
-          GOOGLE_PROJECT: ${{ secrets.GOOGLE_PROJECT }}
           VERSION: ${{ steps.version.outputs.VERSION }}
         run: |
           DOCKER_IMAGE="${{ secrets.CONTAINER_REPO }}:${{ steps.version.outputs.VERSION }}"
           gcloud auth configure-docker us-central1-docker.pkg.dev
           docker push ${DOCKER_IMAGE}
+
+

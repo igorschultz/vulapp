@@ -40,7 +40,7 @@ jobs:
           chmod +x falcon-container-sensor-pull.sh
           export LATESTSENSOR=$(bash <(curl -Ls https://github.com/CrowdStrike/falcon-scripts/releases/latest/download/falcon-container-sensor-pull.sh) -t falcon-container | tail -1) && echo $LATESTSENSOR
           export FALCON_CID=$(./falcon-container-sensor-pull.sh -t falcon-container --get-cid)
-          docker run --platform linux --user 0:0 -v ${HOME}/.docker/config.json:/root/.docker/config.json -v /var/run/docker.sock:/var/run/docker.sock --rm $LATESTSENSOR falconutil patch-image ecsfargate --source-image-uri ${DOCKER_IMAGE} --target-image-uri $IMAGE_REPO:patched --falcon-image-uri $LATESTSENSOR --cid $FALCON_CID --image-pull-policy IfNotPresent
+          docker run --user 0:0 -v ${HOME}/.docker/config.json:/root/.docker/config.json -v /var/run/docker.sock:/var/run/docker.sock --rm $LATESTSENSOR falconutil patch-image ecsfargate --source-image-uri ${DOCKER_IMAGE} --target-image-uri $IMAGE_REPO:patched --falcon-image-uri $LATESTSENSOR --cid $FALCON_CID --image-pull-policy IfNotPresent
 
   push-image:
     needs: fcs-scan

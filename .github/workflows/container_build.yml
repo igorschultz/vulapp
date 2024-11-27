@@ -54,10 +54,6 @@ jobs:
       run: |
         docker build -t ${{ secrets.CONTAINER_REPO }}:${{ steps.version.outputs.VERSION }} .
 
-  fcs-scan:
-    needs: build-image
-    runs-on: ubuntu-latest
-    steps:
     - name: Checkout project
       uses: actions/checkout@v4.1.1
         

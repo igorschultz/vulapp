@@ -47,7 +47,7 @@ jobs:
           FALCON_CLIENT_ID: "${{ secrets.FALCON_CLIENT_ID }}"
           FALCON_CLIENT_SECRET: "${{ secrets.FALCON_CLIENT_SECRET }}"
           FALCON_CLOUD_REGION: "{{ secrets.FALCON_CLOUD_REGION }}"
-          CONTAINER_REPO: test_image
+          CONTAINER_REPO: vulapp_image
           CONTAINER_TAG: latest
       
       - name: Upload Scan Report

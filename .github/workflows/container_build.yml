@@ -63,7 +63,7 @@ jobs:
         container_repository: ${{ secrets.CONTAINER_REPO }}
         container_tag: ${{ env.GITHUB_SHA }}
         crowdstrike_region: us-1
-        crowdstrike_score: 5000
+      #  crowdstrike_score: 5000
         retry_count: 30
       env:
         FALCON_CLIENT_SECRET: ${{ secrets.FALCON_CLIENT_SECRET }}
@@ -91,7 +91,7 @@ jobs:
       env:
         VERSION: ${{ steps.version.outputs.VERSION }}
       run: |
-        VULAPP_IMAGE_URI="${{ secrets.CONTAINER_REPO }}:${{ steps.version.outputs.VERSION }}"
+        VULAPP_IMAGE_URI="${{ secrets.CONTAINER_REPO }}:$GITHUB_SHA"
         docker tag $LOCAL_REPO:$LOCAL_TAG $VULAPP_IMAGE_URI
         gcloud auth configure-docker us-central1-docker.pkg.dev
         docker push $VULAPP_IMAGE_URI

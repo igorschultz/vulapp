@@ -49,7 +49,7 @@ jobs:
 
     - name: "Docker build and tag image"
       run: |
-        docker build -t $LOCAL_REPO:$LOCAL_TAG .
+        docker build -t ${{ secrets.CONTAINER_REPO }}:${{ steps.version.outputs.VERSION }} .
 
   fcs-scan:
     needs: build-image
@@ -66,7 +66,7 @@ jobs:
       env:
         FALCON_CLIENT_ID: "${{ secrets.FALCON_CLIENT_ID }}"
         FALCON_CLIENT_SECRET: "${{ secrets.FALCON_CLIENT_SECRET }}"
-        FALCON_CLOUD_REGION: "{{ secrets.FALCON_CLOUD_REGION }}"
+        FALCON_CLOUD_REGION: "${{ secrets.FALCON_CLOUD_REGION }}"
         CONTAINER_REPO: docker.io/library/test_image
         CONTAINER_TAG: latest
       

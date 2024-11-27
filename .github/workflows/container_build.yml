@@ -63,7 +63,7 @@ jobs:
         container_repository: ${{ secrets.CONTAINER_REPO }}
         container_tag: ${{ env.GITHUB_SHA }}
         crowdstrike_region: us-1
-      #  crowdstrike_score: 5000
+        crowdstrike_score: 50000
         retry_count: 30
       env:
         FALCON_CLIENT_SECRET: ${{ secrets.FALCON_CLIENT_SECRET }}
@@ -88,10 +88,8 @@ jobs:
 #       docker run --user 0:0 -v ${HOME}/.docker/config.json:/root/.docker/config.json -v /var/run/docker.sock:/var/run/docker.sock --rm $LATESTSENSOR falconutil patch-image ecsfargate --source-image-uri ${DOCKER_IMAGE} --target-image-uri $IMAGE_REPO:patched --falcon-image-uri $LATESTSENSOR --cid $FALCON_CID --image-pull-policy IfNotPresent
     
     - name: Tag & Push docker image
-      env:
-        VERSION: ${{ steps.version.outputs.VERSION }}
       run: |
         VULAPP_IMAGE_URI="${{ secrets.CONTAINER_REPO }}:$GITHUB_SHA"
-        docker tag $LOCAL_REPO:$LOCAL_TAG $VULAPP_IMAGE_URI
+        docker tag ${{ secrets.CONTAINER_REPO }}:$GITHUB_SHA $VULAPP_IMAGE_URI
         gcloud auth configure-docker us-central1-docker.pkg.dev
         docker push $VULAPP_IMAGE_URI

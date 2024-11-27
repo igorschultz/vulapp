@@ -29,7 +29,7 @@ jobs:
 
     - name: "Docker build and tag image"
       run: |
-        docker build -t $LOCAL_REPO:$LOCAL_TAG .
+        docker build -t ${{ secrets.CONTAINER_REPO }}:${{ steps.version.outputs.VERSION }} .
 
   fcs-scan:
     needs: build-image

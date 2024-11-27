@@ -8,7 +8,7 @@ on:
       - 'main'    
 
 env:
-  LOCAL_REPO: vulapp_image
+  LOCAL_REPO: test_image
   LOCAL_TAG: latest
 
 permissions:

@@ -7,10 +7,6 @@ on:
     branches:
       - 'main'    
 
-env:
-  LOCAL_REPO: docker.io/library/test_image
-  LOCAL_TAG: latest
-
 permissions:
   contents: read
 
@@ -18,6 +14,10 @@ jobs:
   build-image:
     name: Build image
     runs-on: ubuntu-latest
+
+    env:
+      GITHUB_SHA: ${{ github.sha }}
+
 
     steps:
     - name: Checkout project
@@ -52,20 +52,24 @@ jobs:
 
     - name: "Docker build and tag image"
       run: |
-        docker build -t ${{ secrets.CONTAINER_REPO }}:${{ steps.version.outputs.VERSION }} .
+        docker build -t ${{ secrets.CONTAINER_REPO }}:$GITHUB_SHA -t ${{ secrets.CONTAINER_REPO }}:$GITHUB_SHA .
 
     - name: Checkout project
       uses: actions/checkout@v4.1.1
         
-    - name: CrowdStrike Container Image Scan
-      uses: crowdstrike/container-image-scan-action@v1.1.0
+    - name: Scan Container Image with CrowdStrike
+      uses: CrowdStrike/container-image-scan-action@main
+      with:
+        container_repository: ${{ secrets.CONTAINER_REPO }}
+        container_tag: ${{ env.GITHUB_SHA }}
+        crowdstrike_region: us-1
+        crowdstrike_score: 5000
+        retry_count: 30
       env:
-        FALCON_CLIENT_ID: "${{ secrets.FALCON_CLIENT_ID }}"
-        FALCON_CLIENT_SECRET: "${{ secrets.FALCON_CLIENT_SECRET }}"
-        FALCON_CLOUD_REGION: "${{ secrets.FALCON_CLOUD_REGION }}"
-        CONTAINER_REPO: "${{ secrets.CONTAINER_REPO }}"
-        CONTAINER_TAG: "${{ steps.version.outputs.VERSION }}"
-      
+        FALCON_CLIENT_SECRET: ${{ secrets.FALCON_CLIENT_SECRET }}
+        FALCON_CLIENT_ID: ${{ secrets.FALCON_CLIENT_ID }}
+        JSON_REPORT: /tmp/report.json        
+
     - name: Upload Scan Report
       uses: actions/upload-artifact@v4
       if: always()

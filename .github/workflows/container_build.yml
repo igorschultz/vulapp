@@ -7,6 +7,13 @@ on:
     branches:
       - 'main'    
 
+env:
+  LOCAL_REPO: vulapp_image
+  LOCAL_TAG: latest
+
+permissions:
+  contents: read
+
 jobs:
   build-image:
     name: Build image
@@ -22,8 +29,7 @@ jobs:
 
     - name: "Docker build and tag image"
       run: |
-        export DOCKER_IMAGE="${{ secrets.CONTAINER_REPO }}:${{ steps.version.outputs.VERSION }}"
-        docker build -t $DOCKER_IMAGE .
+        docker build -t $LOCAL_REPO:$LOCAL_TAG .
 
   fcs-scan:
     needs: build-image
@@ -31,16 +37,35 @@ jobs:
     steps:
       - name: Checkout project
         uses: actions/checkout@v4.1.1
-    
-      - name: Patch the docker image with Falcon Container Sensor
+        
+      - name: CrowdStrike Container Image Scan
+        uses: crowdstrike/container-image-scan-action@v1.1.0
+        with:
+          crowdstrike_score: 5000
+          json_report: /tmp/output.json
         env:
-          VERSION: ${{ steps.version.outputs.VERSION }}
-        run: |
-          curl -sSL -o falcon-container-sensor-pull.sh "https://raw.githubusercontent.com/CrowdStrike/falcon-scripts/main/bash/containers/falcon-container-sensor-pull/falcon-container-sensor-pull.sh"
-          chmod +x falcon-container-sensor-pull.sh
-          export LATESTSENSOR=$(bash <(curl -Ls https://github.com/CrowdStrike/falcon-scripts/releases/latest/download/falcon-container-sensor-pull.sh) -t falcon-container | tail -1) && echo $LATESTSENSOR
-          export FALCON_CID=$(./falcon-container-sensor-pull.sh -t falcon-container --get-cid)
-          docker run --user 0:0 -v ${HOME}/.docker/config.json:/root/.docker/config.json -v /var/run/docker.sock:/var/run/docker.sock --rm $LATESTSENSOR falconutil patch-image ecsfargate --source-image-uri ${DOCKER_IMAGE} --target-image-uri $IMAGE_REPO:patched --falcon-image-uri $LATESTSENSOR --cid $FALCON_CID --image-pull-policy IfNotPresent
+          FALCON_CLIENT_ID: "${{ secrets.FALCON_CLIENT_ID }}"
+          FALCON_CLIENT_SECRET: "${{ secrets.FALCON_CLIENT_SECRET }}"
+          FALCON_CLOUD_REGION: "{{ secrets.FALCON_CLOUD_REGION }}"
+          CONTAINER_REPO: test_image
+          CONTAINER_TAG: latest
+      
+      - name: Upload Scan Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: image_scan_output
+          path: /tmp/output.json        
+
+#      - name: Patch the docker image with Falcon Container Sensor
+#        env:
+#          VERSION: ${{ steps.version.outputs.VERSION }}
+#        run: |
+#          curl -sSL -o falcon-container-sensor-pull.sh "https://raw.githubusercontent.com/CrowdStrike/falcon-scripts/main/bash/containers/falcon-container-sensor-pull/falcon-container-sensor-pull.sh"
+#          chmod +x falcon-container-sensor-pull.sh
+#          export LATESTSENSOR=$(bash <(curl -Ls https://github.com/CrowdStrike/falcon-scripts/releases/latest/download/falcon-container-sensor-pull.sh) -t falcon-container | tail -1) && echo $LATESTSENSOR
+#          export FALCON_CID=$(./falcon-container-sensor-pull.sh -t falcon-container --get-cid)
+#          docker run --user 0:0 -v ${HOME}/.docker/config.json:/root/.docker/config.json -v /var/run/docker.sock:/var/run/docker.sock --rm $LATESTSENSOR falconutil patch-image ecsfargate --source-image-uri ${DOCKER_IMAGE} --target-image-uri $IMAGE_REPO:patched --falcon-image-uri $LATESTSENSOR --cid $FALCON_CID --image-pull-policy IfNotPresent
 
   push-image:
     needs: fcs-scan
@@ -65,14 +90,15 @@ jobs:
         run: gcloud info
   
       - name: Docker auth
-        run: gcloud auth configure-docker us-central-1-docker.pkg.dev --quiet
+        run: gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
 
-      - name: Push the docker image
+      - name: Tag & Push docker image
         env:
           VERSION: ${{ steps.version.outputs.VERSION }}
         run: |
-          DOCKER_IMAGE="${{ secrets.CONTAINER_REPO }}:${{ steps.version.outputs.VERSION }}"
+          VULAPP_IMAGE_URI="${{ secrets.CONTAINER_REPO }}:${{ steps.version.outputs.VERSION }}"
+          docker tag $LOCAL_REPO:$LOCAL_TAG $VULAPP_IMAGE_URI
           gcloud auth configure-docker us-central1-docker.pkg.dev
-          docker push ${DOCKER_IMAGE}
+          docker push $VULAPP_IMAGE_UR
 
 

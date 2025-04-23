@@ -29,28 +29,21 @@ jobs:
         uses: google-github-actions/auth@v2
         with:
           credentials_json: '${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}'
+          token_format: 'access_token'
+          create_credentials_file: true
     
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
-          
-      - name: Install gke-gcloud-auth-plugin
-        run: gcloud components install gke-gcloud-auth-plugin
-    
-      - name: Check gke-gcloud-auth-plugin
-        run: kubectl version --client
-          
-      - name: Use gcloud CLI
-        run: gcloud info
+        with:
+          project_id: ${{ secrets.PROJECT_ID }}
+          install_components: 'gke-gcloud-auth-plugin'
     
       - name: Docker auth
         run: gcloud auth configure-docker ${{ secrets.GCP_REGION }}-docker.pkg.dev --quiet
 
       - name: Docker build & tag image
         run: |
-          docker build --platform=linux/amd64 -t ${{ secrets.CONTAINER_REPO }}:${{ env.GITHUB_SHA }} -t ${{ secrets.CONTAINER_REPO }}:${{ env.GITHUB_SHA }} .
-
-      - name: Checkout project
-        uses: actions/checkout@v4.1.1
+          docker build --platform=linux/amd64 -t ${{ secrets.CONTAINER_REPO }}:${{ env.GITHUB_SHA }} .
           
     #  - name: Scan Container Image with CrowdStrike
     #    uses: CrowdStrike/container-image-scan-action@main

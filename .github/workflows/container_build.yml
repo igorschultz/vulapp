@@ -89,4 +89,4 @@ jobs:
       - name: Tag & Push docker image
         run: |
           gcloud auth configure-docker ${{ secrets.GCP_REGION }}-docker.pkg.dev
-          docker push ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.PROJECT_ID }}/vulapp/vulapp:patched
+          docker push ${{ secrets.CONTAINER_REPO }}:patched

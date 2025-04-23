@@ -63,7 +63,7 @@ jobs:
         container_repository: ${{ secrets.CONTAINER_REPO }}
         container_tag: ${{ env.GITHUB_SHA }}
         crowdstrike_region: us-1
-        crowdstrike_score: 20
+        crowdstrike_score: 20000
         retry_count: 30
       env:
         FALCON_CLIENT_SECRET: ${{ secrets.FALCON_CLIENT_SECRET }}
@@ -77,19 +77,20 @@ jobs:
         name: image_scan_output
         path: /tmp/output.json        
 
-#   - name: Patch the docker image with Falcon Container Sensor
-#     env:
-#       VERSION: ${{ steps.version.outputs.VERSION }}
-#     run: |
-#       curl -sSL -o falcon-container-sensor-pull.sh "https://raw.githubusercontent.com/CrowdStrike/falcon-scripts/main/bash/containers/falcon-container-sensor-pull/falcon-container-sensor-pull.sh"
-#       chmod +x falcon-container-sensor-pull.sh
-#       export LATESTSENSOR=$(bash <(curl -Ls https://github.com/CrowdStrike/falcon-scripts/releases/latest/download/falcon-container-sensor-pull.sh) -t falcon-container | tail -1) && echo $LATESTSENSOR
-#       export FALCON_CID=$(./falcon-container-sensor-pull.sh -t falcon-container --get-cid)
-#       docker run --user 0:0 -v ${HOME}/.docker/config.json:/root/.docker/config.json -v /var/run/docker.sock:/var/run/docker.sock --rm $LATESTSENSOR falconutil patch-image ecsfargate --source-image-uri ${DOCKER_IMAGE} --target-image-uri $IMAGE_REPO:patched --falcon-image-uri $LATESTSENSOR --cid $FALCON_CID --image-pull-policy IfNotPresent
-    
+    - name: Patch Container Image with Falcon Sensor
+      uses: crowdstrike/falconutil-action@v1.0.0
+      with:
+        falcon_client_id: ${{ secrets.FALCON_CLIENT_ID }}
+        falcon_region: 'us-1'
+        source_image_uri: '${{ secrets.CONTAINER_REPO }}:${{ env.GITHUB_SHA }}'
+        target_image_uri: '${{ secrets.CONTAINER_REPO }}:patched'
+        cid: '${{ secrets.FALCON_CID }}'
+        falconctl_opts: '--tags=fargate'
+        cloud_service: CLOUDRUN
+        image_pull_policy: IfNotPresent
+      env:
+        FALCON_CLIENT_SECRET: '${{ secrets.FALCON_CLIENT_SECRET }}'
+          
     - name: Tag & Push docker image
       run: |
-        VULAPP_IMAGE_URI="${{ secrets.CONTAINER_REPO }}:$GITHUB_SHA"
-        docker tag ${{ secrets.CONTAINER_REPO }}:$GITHUB_SHA $VULAPP_IMAGE_URI
-        gcloud auth configure-docker us-central1-docker.pkg.dev
-        docker push $VULAPP_IMAGE_URI
+        docker push ${{ secrets.CONTAINER_REPO }}:patched

@@ -43,7 +43,7 @@ jobs:
         run: gcloud info
     
       - name: Docker auth
-        run: gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
+        run: gcloud auth configure-docker ${{ secrets.GCP_REGION }}-docker.pkg.dev --quiet
 
       - name: Docker build & tag image
         run: |
@@ -88,5 +88,5 @@ jobs:
             
       - name: Tag & Push docker image
         run: |
-          gcloud auth configure-docker us-central1-docker.pkg.dev
-          docker push ${{ secrets.CONTAINER_REPO }}:patched
+          gcloud auth configure-docker ${{ secrets.GCP_REGION }}-docker.pkg.dev
+          docker push ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.PROJECT_ID }}/vulapp:patched

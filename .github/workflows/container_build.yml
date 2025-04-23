@@ -28,13 +28,13 @@ jobs:
       - id: auth
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: "${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}"
+          credentials_json: '${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}'
     
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
           
       - name: Install gke-gcloud-auth-plugin
-        run: gcloud components install kubectl
+        run: gcloud components install gke-gcloud-auth-plugin
     
       - name: Check gke-gcloud-auth-plugin
         run: kubectl version --client

@@ -50,9 +50,9 @@ jobs:
       id: version
       run: echo "VERSION=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
-    - name: "Docker build and tag image"
+    - name: Docker build and tag image
       run: |
-        docker build -t ${{ secrets.CONTAINER_REPO }}:$GITHUB_SHA -t ${{ secrets.CONTAINER_REPO }}:$GITHUB_SHA .
+        docker build --platform=linux/amd64 -t ${{ secrets.CONTAINER_REPO }}:${{ env.GITHUB_SHA }} -t ${{ secrets.CONTAINER_REPO }}:${{ env.GITHUB_SHA }} .
 
     - name: Checkout project
       uses: actions/checkout@v4.1.1

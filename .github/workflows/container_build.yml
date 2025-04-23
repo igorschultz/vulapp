@@ -88,4 +88,5 @@ jobs:
             
       - name: Tag & Push docker image
         run: |
+          gcloud auth configure-docker us-central1-docker.pkg.dev
           docker push ${{ secrets.CONTAINER_REPO }}:patched

@@ -47,7 +47,7 @@ jobs:
 
       - name: Docker build & tag image
         run: |
-          docker build --platform=linux/amd64 -t ${{ secrets.CONTAINER_REPO }}:latest -t ${{ secrets.CONTAINER_REPO }}:latest .
+          docker build --platform=linux/amd64 -t ${{ secrets.CONTAINER_REPO }}:${{ env.GITHUB_SHA }} -t ${{ secrets.CONTAINER_REPO }}:${{ env.GITHUB_SHA }} .
 
       - name: Checkout project
         uses: actions/checkout@v4.1.1
@@ -56,7 +56,7 @@ jobs:
         uses: CrowdStrike/container-image-scan-action@main
         with:
           container_repository: ${{ secrets.CONTAINER_REPO }}
-          container_tag: latest
+          container_tag: ${{ env.GITHUB_SHA }}
           crowdstrike_region: us-1
           crowdstrike_score: 20000
           retry_count: 30
@@ -77,7 +77,7 @@ jobs:
         with:
           falcon_client_id: ${{ secrets.FALCON_CLIENT_ID }}
           falcon_region: 'us-1'
-          source_image_uri: '${{ secrets.CONTAINER_REPO }}:latest'
+          source_image_uri: '${{ secrets.CONTAINER_REPO }}:${{ env.GITHUB_SHA }}'
           target_image_uri: '${{ secrets.CONTAINER_REPO }}:patched'
           cid: '${{ secrets.FALCON_CID }}'
           falconctl_opts: '--tags=fargate'

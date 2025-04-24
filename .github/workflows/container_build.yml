@@ -94,6 +94,8 @@ jobs:
             --cpu=1
             --memory=512Mi
             --timeout=300
+            --allow-unauthenticated
+            --execution-environment=gen2
 
     
       - name: 'Use output'

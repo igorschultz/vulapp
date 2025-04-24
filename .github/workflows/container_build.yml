@@ -84,12 +84,11 @@ jobs:
           docker push ${{ secrets.CONTAINER_REPO }}:patched
 
       - id: 'deploy'
+        name: Deploy on Google Cloud Run
         uses: 'google-github-actions/deploy-cloudrun@v2'
         with:
           service: 'vulapp'
           image: '${{ secrets.CONTAINER_REPO }}:patched'
-          env_vars: |
-            PORT=8080
           flags: |
             --port=8080
             --cpu=1

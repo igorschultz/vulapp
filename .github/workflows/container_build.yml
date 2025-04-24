@@ -88,6 +88,14 @@ jobs:
         with:
           service: 'vulapp'
           image: '${{ secrets.CONTAINER_REPO }}:patched'
+          env_vars: |
+            PORT=8080
+          flags: |
+            --port=8080
+            --cpu=1
+            --memory=512Mi
+            --timeout=300
+
     
       - name: 'Use output'
         run: 'curl "${{ steps.deploy.outputs.url }}"'

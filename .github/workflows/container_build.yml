@@ -82,3 +82,12 @@ jobs:
       - name: Tag & Push docker image
         run: |
           docker push ${{ secrets.CONTAINER_REPO }}:patched
+
+      - id: 'deploy'
+        uses: 'google-github-actions/deploy-cloudrun@v2'
+        with:
+          service: 'vulapp'
+          image: '${{ secrets.CONTAINER_REPO }}:patched'
+    
+      - name: 'Use output'
+        run: 'curl "${{ steps.deploy.outputs.url }}"'

@@ -10,9 +10,12 @@ on:
 permissions: write-all
 
 jobs:
-  build-image:
-    name: Build image
+  build-todolist-image:
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
 
     env:
       GITHUB_SHA: ${{ github.sha }}
@@ -45,58 +48,74 @@ jobs:
         run: |
           docker build --platform=linux/amd64 -t ${{ secrets.CONTAINER_REPO }}:${{ env.GITHUB_SHA }} .
           
-    #  - name: Scan Container Image with CrowdStrike
-    #    uses: CrowdStrike/container-image-scan-action@main
-    #    with:
-    #      container_repository: ${{ secrets.CONTAINER_REPO }}
-    #      container_tag: ${{ env.GITHUB_SHA }}
-    #      crowdstrike_region: us-1
-    #      crowdstrike_score: 20000
-    #      retry_count: 30
-    #    env:
-    #      FALCON_CLIENT_SECRET: ${{ secrets.FALCON_CLIENT_SECRET }}
-    #      FALCON_CLIENT_ID: ${{ secrets.FALCON_CLIENT_ID }}
-    #      JSON_REPORT: /tmp/report.json        
+      - name: Scan Container Image with CrowdStrike for Vulnerabilities Only
+        uses: crowdstrike/fcs-action@v2.0.2
+        with:
+          falcon_client_id: ${{ secrets.FALCON_CLIENT_ID }}
+          falcon_region: 'us-1'
+          scan_type: image
+          image: "${{ secrets.CONTAINER_REPO }}:${{ env.GITHUB_SHA }}"
+          minimum_severity: medium
+          minimum_exprt: medium
+          report_sort_by: severity/desc
+          vuln_fixable_only: true
+          upload_results: true
+          report_formats: json,sarif
+          output_path: './vuln-results/results.json'
+        env:
+          FALCON_CLIENT_SECRET: ${{ secrets.FALCON_CLIENT_SECRET }}
+  
+      - name: Upload SARIF report
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: './vuln-results'
+          category: 'container-scan'
+          wait-for-processing: true
+          
+      - name: Run FCS IaC Scan
+        id: fcs
+        uses: crowdstrike/fcs-action@v2.0.2
+        with:
+          falcon_client_id: ${{ secrets.FALCON_CLIENT_ID }}
+          falcon_region: 'us-1'
+          path: 'ecs-fargate-java-goof.yaml'
+          fail_on: 'high=10'
+          report_formats: 'sarif'
+          output_path: './scan-results'
+          version: 2.1.0
+          upload_results: true
+        env: 
+          FALCON_CLIENT_SECRET: ${{ secrets.FALCON_CLIENT_SECRET }}
 
-    #  - name: Upload Scan Report
-    #    uses: actions/upload-artifact@v4
-    #    if: always()
-    #    with:
-    #      name: image_scan_output
-    #      path: /tmp/output.json        
+      - name: Upload SARIF report to GitHub Code scanning
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ./scan-results
 
       - name: Patch Container Image with Falcon Sensor
-        uses: crowdstrike/falconutil-action@v1.0.0
+        uses: crowdstrike/falconutil-action@v1.1.0
         with:
           falcon_client_id: ${{ secrets.FALCON_CLIENT_ID }}
           falcon_region: 'us-1'
           source_image_uri: '${{ secrets.CONTAINER_REPO }}:${{ env.GITHUB_SHA }}'
           target_image_uri: '${{ secrets.CONTAINER_REPO }}:patched'
           cid: '${{ secrets.FALCON_CID }}'
-          falconctl_opts: '--tags=fargate'
+          falconctl_opts: '--tags=serverless'
           cloud_service: CLOUDRUN
           image_pull_policy: IfNotPresent
         env:
           FALCON_CLIENT_SECRET: '${{ secrets.FALCON_CLIENT_SECRET }}'
             
-      - name: Tag & Push docker image
+      - name: Push docker image to Google Artifact Registry
         run: |
           docker push ${{ secrets.CONTAINER_REPO }}:patched
 
-      - id: 'deploy'
-        name: Deploy on Google Cloud Run
-        uses: 'google-github-actions/deploy-cloudrun@v2'
-        with:
-          service: 'vulapp'
-          image: '${{ secrets.CONTAINER_REPO }}:patched'
-          flags: |
-            --port=8080
-            --cpu=1
-            --memory=512Mi
-            --timeout=300
-            --allow-unauthenticated
-            --execution-environment=gen2
-
+      - name: Terraform Init
+        run: terraform init
+        env:
+          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
     
-      - name: 'Use output'
-        run: 'curl "${{ steps.deploy.outputs.url }}"'
+      - name: Terraform Apply
+        run: terraform apply --auto-approve -var "project=${{ secrets.PROJECT_ID }}"  -var "image=${{ secrets.CONTAINER_REPO }}:patched"  -lock=false

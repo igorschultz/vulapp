@@ -79,7 +79,7 @@ jobs:
         with:
           falcon_client_id: ${{ secrets.FALCON_CLIENT_ID }}
           falcon_region: 'us-1'
-          path: 'ecs-fargate-java-goof.yaml'
+          path: 'main.tf'
           fail_on: 'high=10'
           report_formats: 'sarif'
           output_path: './scan-results'

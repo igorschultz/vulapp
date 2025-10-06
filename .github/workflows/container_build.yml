@@ -72,6 +72,9 @@ jobs:
           sarif_file: './vuln-results'
           category: 'container-scan'
           wait-for-processing: true
+
+      - name: Create scan results directory
+        run: mkdir -p ./scan-results          
           
       - name: Run FCS IaC Scan
         id: fcs

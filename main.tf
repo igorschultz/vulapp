@@ -43,3 +43,17 @@ resource "google_cloud_run_service_iam_member" "public" {
   role     = "roles/run.invoker"
   member   = "allUsers"
 }
+
+
+resource "google_storage_bucket" "bucket" {
+  project       = var.project
+  name          = "${var.project}-iac-scanner-cloud-run-bucket"
+  force_destroy = false
+  location      = var.region
+}
+
+resource "google_storage_bucket_access_control" "public_rule" {
+  bucket = google_storage_bucket.bucket.name
+  role   = "READER"
+  entity = "allUsers"
+}
